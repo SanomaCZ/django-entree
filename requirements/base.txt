@@ -1,0 +1,5 @@
+south>=0.7
+django-jsonfield
+git+git://github.com/earle/django-bootstrap.git#egg=bootstrap
+simplejson
+django>=1.3
