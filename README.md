@@ -5,25 +5,26 @@ Simple django-based Single sign-on system.
 
 
 
-Example:
-========
+Configuration
+=============
 
 
-Server-side:
-------------
+Server-side
+-----------
 
 
-settings.py
-``
+**settings.py**
+
+```python
 
 MIDDLEWARE_CLASSES = (
-	...
+    ...
     'entree.enauth.middleware.AuthMiddleware',
-	...
+    ...
 )
 
 INSTALLED_APPS = (
-	...
+    ...
     'entree.enauth',
     'entree.site',
     'bootstrap',
@@ -32,9 +33,9 @@ INSTALLED_APPS = (
 
 
 TEMPLATE_CONTEXT_PROCESSORS = (
-	...
-	'entree.common.context_processors.common',
-	...
+    ...
+    'entree.common.context_processors.common',
+    ...
 )
 
 AUTHENTICATION_BACKENDS = (
@@ -52,34 +53,34 @@ ENTREE = {
 
     'COOKIE': {
         'ANONYMOUS_VALUE': 'ANONYMOUS',
-	},
+    },
 
     'NOSITE_ID': 1,
     'DEFAULT_SITE': 4,
     'SESSION_KEY': 'entree_session',
     'STORAGE_TOKEN_KEY': 'entree_token',
 }
-``
+```
 
 
 
 
-Client-side:
-------------
+Client-side
+-----------
 
-settings.py:
+**settings.py**
 
-``
+```python
 MIDDLEWARE_CLASSES = (
-	...
+    ...
     'entree.client.middleware.AuthMiddleware',
-	...
+    ...
 )
 
 TEMPLATE_CONTEXT_PROCESSORS = (
-	...
-	'entree.common.context_processors.common',
-	...
+    ...
+    'entree.common.context_processors.common',
+    ...
 )
 
 INSTALLED_APPS = (
@@ -110,7 +111,8 @@ ENTREE = {
     "SECRET_KEY": "IcW211vIIx8EZZD0wlkWaCF06Tp55SMeO9g82o5F",
     "CACHE_PROFILE": 300
 }
-``
+```
+
 
 You have to choose `entree.client.db` or `entree.client.cache` app.
 The `db` one inherits Entree's user from Django's User.
@@ -123,4 +125,4 @@ TODOs:
 
 
 - client's data pushing
-...	
+...
