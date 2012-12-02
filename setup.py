@@ -15,7 +15,7 @@ CWD = abspath(dirname(__file__))
 
 def install_requires():
     with open(join(CWD, 'requirements', 'base.txt'), 'r') as f:
-        reqs = [one for one in f.read().split("\n") if "#" not in one]
+        reqs = [one for one in f.read().split("\n") if not one.startswith('"#"')]
 
     base = ['setuptools>=0.6b1']
     return base + reqs
@@ -56,5 +56,5 @@ setup(
     install_requires=install_requires(),
     tests_require=['nose', 'coverage', 'mock'],
     test_suite='tests.run_tests.run_all',
-    dependency_links=['https://github.com/earle/django-bootstrap#egg=bootstrap'],
+    dependency_links=['https://github.com/earle/django-bootstrap#egg=django-bootstrap-forms'],
 )
