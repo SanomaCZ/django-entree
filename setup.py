@@ -25,7 +25,7 @@ setup(
     name='Entree',
     version=entree.__versionstr__,
     description='Entree - Django powered SSO',
-    long_description=open('README.rst').read(),
+    long_description=open('README.md').read(),
     author='Sanoma Media Praha s.r.o.',
     author_email='online-dev@sanomamedia.cz',
     maintainer='Vitek Pliska',
