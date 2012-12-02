@@ -55,6 +55,5 @@ setup(
     ],
     install_requires=install_requires(),
     tests_require=['nose', 'coverage', 'mock'],
-    test_suite='tests.run_tests.run_all',
-    dependency_links=['https://github.com/earle/django-bootstrap/tarball/master#egg=django-bootstrap-forms'],
+    test_suite='tests.run_tests.run_all'
 )
