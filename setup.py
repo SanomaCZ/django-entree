@@ -14,7 +14,7 @@ CWD = abspath(dirname(__file__))
 
 
 def install_requires():
-    with open(join(CWD, 'requirements', 'base.txt'), 'r') as f:
+    with open(join(CWD, 'requirements.txt'), 'r') as f:
         reqs = [one for one in f.read().split("\n") if not one.startswith('"#"')]
 
     base = ['setuptools>=0.6b1']

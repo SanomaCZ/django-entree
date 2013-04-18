@@ -75,7 +75,6 @@ class EntreeUserCacheManager(EntreeUserFetcherMixin, CachedManagerMixin):
         return settings.ENTREE.get('CACHE_PROFILE', 300)
 
     def create(self, **kwargs):
-        print kwargs
         if 'email' not in kwargs.get('data', {}):
             raise ValueError("Missing email in data")
 

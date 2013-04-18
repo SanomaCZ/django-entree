@@ -1,0 +1,5 @@
+south>=0.7
+django-jsonfield
+django-bootstrap-forms
+simplejson
+django>=1.3

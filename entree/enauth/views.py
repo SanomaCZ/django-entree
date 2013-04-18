@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 class EntreeAuthMixin(TemplateResponseMixin):
 
-    def entree_login(self, identity, site_id=None, next_url=''):
+    def entree_login(self, identity, site_id=None, next_url='/'):
         sess = self.request.session
 
         if SESSION_KEY not in sess:
@@ -273,7 +273,7 @@ class RecoveryLoginView(EntreeAuthMixin, View):
                         'next_url': reverse('login', kwargs={'origin_site': kwargs.get('origin_site', ENTREE['DEFAULT_SITE'])}),
                     }, context_instance=RequestContext(request))
         else:
-            return self.entree_login(token.user)
+            return self.entree_login(token.user, site_id=kwargs['origin_site'])
 
 
 class PasswordRecoveryRequestView(FormView):
