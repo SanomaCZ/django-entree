@@ -1,5 +1,7 @@
 import simplejson as json
+
 from django.http import HttpResponse
+
 
 class JSONResponseMixin(object):
     def render_to_response(self, context):

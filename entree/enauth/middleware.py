@@ -9,6 +9,7 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 CACHED_USER_KEY = '_entree_cached_user'
 
+
 def get_user(request):
     if not getattr(request, CACHED_USER_KEY, None):
         user = AnonymousUser()

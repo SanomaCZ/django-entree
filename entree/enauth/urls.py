@@ -12,15 +12,15 @@ urlpatterns = patterns('entree.enauth.views',
 
     url(r'^login/recovery/(?P<origin_site>\d+)/$', RecoveryLoginView.as_view(), name='login-recovery'),
 
-    url(r'^login/$', LoginView.as_view(), name='login'), #dummy url
+    url(r'^login/$', LoginView.as_view(), name='login'),  # dummy url
     url(r'^login/(?P<origin_site>\d+)/$', LoginView.as_view(), name='login'),
     url(r'^login/(?P<origin_site>\d+)/(?P<next_url>\S+)/$', LoginView.as_view(), name='login'),
 
-    url(r'^logout/$', LogoutView.as_view(), name='logout'), #dummy url
+    url(r'^logout/$', LogoutView.as_view(), name='logout'),  # dummy url
     url(r'^logout/(?P<origin_site>\d+)/$', LogoutView.as_view(), name='logout'),
     url(r'^logout/(?P<origin_site>\d+)/(?P<next_url>\S+)/$', LogoutView.as_view(), name='logout'),
 
-    url(r'^register/$', CreateIdentityView.as_view(), name='register'), #dummy url
+    url(r'^register/$', CreateIdentityView.as_view(), name='register'),  # dummy url
     url(r'^register/(?P<origin_site>\d+)/$', CreateIdentityView.as_view(), name='register'),
     url(r'^register/(?P<origin_site>\d+)/(?P<next_url>\S+)/$', CreateIdentityView.as_view(), name='create_identity'),
 

@@ -46,7 +46,7 @@ class EntreeAuthMixin(TemplateResponseMixin):
         elif ENTREE['SESSION_KEY'] in sess and sess[ENTREE['SESSION_KEY']] != identity.id:
             sess.flush()
 
-        token = identity.create_token(extra_data={'session': sess.session_key})
+        token = identity.create_token(app_data={'session': sess.session_key})
         sess[ENTREE['SESSION_KEY']] = identity.id
         sess[ENTREE['STORAGE_TOKEN_KEY']] = token.value
 
@@ -84,10 +84,15 @@ class EntreeAuthMixin(TemplateResponseMixin):
         if request.entree_user.is_authenticated():
             old_user = request.entree_user
             try:
-                LoginToken.objects.get(value=request.session.get(ENTREE['STORAGE_TOKEN_KEY']),
-                                   user=old_user, token_type=AUTH_TOKEN).delete()
+                token = LoginToken.objects.get(
+                        value=request.session.get(ENTREE['STORAGE_TOKEN_KEY']),
+                        user=old_user,
+                        token_type=AUTH_TOKEN)
+
             except LoginToken.DoesNotExist:
                 pass
+            else:
+                token.delete()
 
             request.entree_user = AnonymousUser()
 
@@ -116,7 +121,8 @@ class LoginView(EntreeAuthMixin, FormView):
 
         if request.entree_user.is_authenticated():
             edit_kwargs = dict(site_id=kwargs['origin_site'])
-            edit_kwargs.update( ( dict(next_url=kwargs['next_url']) if 'next_url' in kwargs else {}) )
+            if 'next_url' in kwargs:
+                edit_kwargs['next_url'] = kwargs['next_url']
             return HttpResponseRedirect(reverse('profile_edit', kwargs=edit_kwargs))
 
         return super(LoginView, self).dispatch(request, *args, **kwargs)
@@ -136,7 +142,8 @@ class LogoutView(AuthRequiredMixin, EntreeAuthMixin, FormView):
     template_name = 'logout.html'
 
     def form_valid(self, form):
-        return self.entree_logout(get_next_url(self.kwargs.get('origin_site', ENTREE['DEFAULT_SITE']), self.kwargs.get('next_url')))
+        origin_site = self.kwargs.get('origin_site', ENTREE['DEFAULT_SITE'])
+        return self.entree_logout(get_next_url(origin_site, self.kwargs.get('next_url')))
 
 
 class LoginHashView(TemplateView):
@@ -192,8 +199,8 @@ class CreateIdentityView(EntreeAuthMixin, CreateView):
         mailer.send_activation()
 
         token = mailer.token
-        token.extra_data['origin_site'] = self.kwargs['origin_site']
-        token.extra_data['next_url'] = self.kwargs.get('next_url')
+        token.app_data['origin_site'] = self.kwargs['origin_site']
+        token.app_data['next_url'] = self.kwargs.get('next_url')
         token.save()
 
         return self.entree_login(self.object)
@@ -217,8 +224,8 @@ class IdentityVerifyView(EntreeAuthMixin, TemplateView):
         except (LoginToken.DoesNotExist, ValidationError, UnicodeError, DecodeError):
             return super(IdentityVerifyView, self).get(request, *args, **kwargs)
 
-        site_id = token.extra_data.get('origin_site')
-        next_url = token.extra_data.get('next_url')
+        site_id = token.app_data.get('origin_site')
+        next_url = token.app_data.get('next_url')
 
         identity = token.user
         identity.is_active = identity.mail_verified = True
@@ -267,10 +274,14 @@ class RecoveryLoginView(EntreeAuthMixin, View):
         try:
             token = LoginToken.objects.get(value=token_str, token_type=AUTH_TOKEN)
         except LoginToken.DoesNotExist:
+            next_url = reverse('login', kwargs={
+                'origin_site': kwargs.get('origin_site', ENTREE['DEFAULT_SITE'])
+            })
+
             return render_to_response('delete_token.html', {
                         'entree': ENTREE_SAFE,
                         'input_token': token_str,
-                        'next_url': reverse('login', kwargs={'origin_site': kwargs.get('origin_site', ENTREE['DEFAULT_SITE'])}),
+                        'next_url': next_url,
                     }, context_instance=RequestContext(request))
         else:
             return self.entree_login(token.user, site_id=kwargs['origin_site'])
@@ -305,7 +316,9 @@ class PasswordChangeView(AuthRequiredMixin, FormView):
 
     def form_valid(self, form):
         actual_token = self.request.session[ENTREE['STORAGE_TOKEN_KEY']]
-        LoginToken.objects.filter(user=self.request.entree_user, token_type=AUTH_TOKEN).exclude(value=actual_token).delete()
+        LoginToken.objects\
+            .filter(user=self.request.entree_user, token_type=AUTH_TOKEN)\
+            .exclude(value=actual_token).delete()
 
         self.request.entree_user.set_password(form.cleaned_data['password'])
         self.request.entree_user.save()
@@ -391,8 +404,8 @@ class ShowApiView(TemplateView):
         }
 
         prepare_entree = json.dumps(prepare_entree, indent=4)
-        prepare_entree = prepare_entree.replace(str(REPLACE_INT), '<strong>%s</strong>' %  REPLACE_INT)
-        prepare_entree = prepare_entree.replace('"%s"' % REPLACE_STR, '<strong>%s</strong>' %  REPLACE_STR)
+        prepare_entree = prepare_entree.replace(str(REPLACE_INT), '<strong>%s</strong>' % REPLACE_INT)
+        prepare_entree = prepare_entree.replace('"%s"' % REPLACE_STR, '<strong>%s</strong>' % REPLACE_STR)
 
         data['ENTREE'] = mark_safe(prepare_entree)
 

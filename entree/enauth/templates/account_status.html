@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+
+{% load url from future %}
 {% load i18n %}
 
 {% block extra_head %}
@@ -74,7 +76,7 @@
 					{% blocktrans %}We sent your an email to verify your address, check your mailbox click on link you found in there and your account will be fully activated.{% endblocktrans %}
 
 					<div class="center">
-						<a class="btn btn-large" id="ajaxResend" href="{% url verify_resend %}">
+						<a class="btn btn-large" id="ajaxResend" href="{% url "verify_resend" %}">
 							{% trans "I didn't get any e-mail, send it again, please :(" %}
 						</a>
 					</div>

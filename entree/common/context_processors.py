@@ -1,5 +1,6 @@
 from entree.common.utils import ENTREE_SAFE
 
+
 def common(request):
     return {
         'entree': ENTREE_SAFE,

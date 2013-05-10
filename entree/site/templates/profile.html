@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+{% load url from future %}
 {% load i18n %}
 
 {% block content %}
@@ -12,11 +13,11 @@
 				<h2><a href="{{ one.url}}">{{ one.title }}</a></h2>
 
 				{% if one.pk not in active_profiles %}
-					<a class="btn btn-inverse btn-large" href="{% url profile_edit one.pk %}">{% trans "Activate profile" %}</a>
+					<a class="btn btn-inverse btn-large" href="{% url "profile_edit" one.pk %}">{% trans "Activate profile" %}</a>
 					<span class="label label-inverse">{% trans "Inactive profile" %} *</span>
 				{% else %}
 
-					<a class="btn btn-large" href="{% url profile_edit one.pk %}">Edit my profile</a>
+					<a class="btn btn-large" href="{% url "profile_edit" one.pk %}">Edit my profile</a>
 				{% endif %}
 			</div>
 		{% endfor %}

@@ -1,10 +1,10 @@
-from base64 import b64encode
 from hashlib import sha1
 from django.conf import settings
 
 ENTREE = settings.ENTREE
 COOKIE_CHECKSUM_SEPARATOR = '|'
 SHORT_CHECK = 10
+
 
 def get_safe_entree():
     from copy import deepcopy
@@ -16,6 +16,7 @@ def get_safe_entree():
     protected = deepcopy(ENTREE)
     protected.update(PROTECTED_ITEMS)
     return protected
+
 
 ENTREE_SAFE = get_safe_entree()
 

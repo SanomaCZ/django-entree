@@ -61,7 +61,6 @@ class IdentityMailer(object):
 
         return token
 
-
     def _send_mail(self, subject, message, from_email=None):
         """
         common wrapper for django's send_mail function

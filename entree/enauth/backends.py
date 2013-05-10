@@ -6,7 +6,6 @@ logger = logging.getLogger(__name__)
 
 
 class AuthBackend(ModelBackend):
-
     def authenticate(self, username=None, password=None):
         try:
             user = Identity.objects.get(email=username)

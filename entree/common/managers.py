@@ -1,7 +1,7 @@
 from django.core.cache import cache
 
-class CachedManagerMixin(object):
 
+class CachedManagerMixin(object):
     cache_timeout = 1800
 
     @property

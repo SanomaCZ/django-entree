@@ -1,13 +1,9 @@
 import logging
-import django
 
-from hashlib import sha1
 from random import randint
 from sys import maxint
 from datetime import datetime
-from jsonfield import JSONField
 
-from django.contrib.auth.hashers import UNUSABLE_PASSWORD
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth.models import check_password
@@ -16,10 +12,12 @@ from entree.common.models import CachedModel
 from entree.enauth.managers import IdentityManager, LoginTokenManager
 from entree.common.utils import calc_checksum
 
+from app_data.fields import AppDataField
+
 
 logger = logging.getLogger(__name__)
 
-MAIL_COOLDOWN = 10 * 60 #10 minutes
+MAIL_COOLDOWN = 10 * 60  # 10 minutes
 MAIL_TOKEN = 'MAIL'
 AUTH_TOKEN = 'AUTH'
 RESET_TOKEN = 'RESET'
@@ -39,8 +37,9 @@ class LoginToken(CachedModel):
     user = models.ForeignKey("enauth.Identity")
     value = models.CharField(_("Auth token"), max_length=40, unique=True)
     token_type = models.CharField(_("Token type"), choices=TOKEN_TYPES, max_length=5, db_index=True, default=DEFAULT_TOKEN)
-    extra_data = JSONField(_("Extra data for token"), blank=True)
     touched = models.DateTimeField(_("Datetime of creation"), default=datetime.now)
+
+    app_data = AppDataField(_("Extra data for token"))
 
     objects = LoginTokenManager()
 
@@ -73,14 +72,14 @@ class Identity(CachedModel):
     def __unicode__(self):
         return u"Identity %s" % self.email
 
-    def create_token(self, token_type=DEFAULT_TOKEN, extra_data='{}'):
+    def create_token(self, token_type=DEFAULT_TOKEN, app_data=None):
         """
         Helper for creating LoginToken for given Identity
 
         @type token_type:   string
         @param token_type:  type of token to create, should be listed in TOKEN_TYPES
-        @type extra_data:   dict
-        @param extra_data:  custom extra data to store in LoginToken.extra_data
+        @type app_data:   dict
+        @param app_data:  custom extra data to store in LoginToken.app_data
 
         @rtype:     LoginToken
         @return:    LoginToken w/ data based on input
@@ -90,7 +89,7 @@ class Identity(CachedModel):
 
         value = calc_checksum(self.email, salt=randint(0, maxint))
 
-        return LoginToken.objects.create(user=self, value=value, token_type=token_type, extra_data=extra_data)
+        return LoginToken.objects.create(user=self, value=value, token_type=token_type, app_data=app_data)
 
     def save(self, *args, **kwargs):
         self.email = self.email.strip().lower()
@@ -105,17 +104,7 @@ class Identity(CachedModel):
         return check_password(raw_password, self.password, setter)
 
     def set_password(self, raw_password):
-        if django.VERSION < (1,4):
-            def make_password(raw_password):
-                if not raw_password:
-                    return UNUSABLE_PASSWORD
-
-                salt = sha1(str(randint(0, maxint))).hexdigest()[:5]
-                hash = sha1(raw_password + salt).hexdigest()
-                return 'sha1$%s$%s' % (salt, hash)
-        else:
-            from django.contrib.auth.hashers import make_password
-
+        from django.contrib.auth.hashers import make_password
         self.password = make_password(raw_password)
 
     def is_authenticated(self):
