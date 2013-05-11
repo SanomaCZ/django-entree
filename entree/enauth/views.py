@@ -1,3 +1,4 @@
+from cache_tools.utils import get_cached_object
 import simplejson as json
 import logging
 import re
@@ -129,7 +130,7 @@ class LoginView(EntreeAuthMixin, FormView):
 
     def get_context_data(self, **kwargs):
         data = super(LoginView, self).get_context_data(**kwargs)
-        data['origin_site'] = EntreeSite.objects.get_cached(key=self.kwargs['origin_site'])
+        data['origin_site'] = get_cached_object(EntreeSite, origin=self.kwargs['origin_site'])
         return data
 
     def form_valid(self, form):

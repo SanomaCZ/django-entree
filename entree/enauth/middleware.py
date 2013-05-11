@@ -1,9 +1,11 @@
 import logging
+
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.contrib.auth.models import AnonymousUser
-from entree.enauth.backends import AuthBackend
 from django.conf import settings
+
+from entree.enauth.backends import AuthBackend
 
 
 logger = logging.getLogger(__name__)

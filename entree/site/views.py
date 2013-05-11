@@ -17,6 +17,8 @@ from entree.enauth.models import LoginToken
 from entree.site.forms import ProfileForm
 from entree.site.models import EntreeSite, SiteProfile
 
+from cache_tools.utils import get_cached_object
+
 
 ENTREE = settings.ENTREE
 logger = logging.getLogger(__name__)
@@ -60,9 +62,9 @@ class ProfileFetchView(JSONResponseMixin, View):
         @return: identity data for given site (see site_id in request.POST)
         @rtype: json on success, HttpResponseForbidden on invalid input
         """
-        data = self.request.POST
+        data = request.POST
         try:
-            site = EntreeSite.objects.get_cached(key=data['site_id'])
+            site = get_cached_object(EntreeSite, orogin=data['site_id'])
         except (EntreeSite.DoesNotExist, KeyError):
             logger.error("requested EntreeSite does not exist", extra={'site_id': data.get('site_id')})
             return HttpResponseForbidden(_("Invalid site id"))
@@ -76,7 +78,7 @@ class ProfileFetchView(JSONResponseMixin, View):
             return HttpResponseForbidden(_("Invalid token checksum"))
 
         try:
-            login_token = LoginToken.objects.get_cached(key=data['token'])
+            login_token = get_cached_object(LoginToken, token=data['token'])
         except LoginToken.DoesNotExist:
             logger.error("Requested token doesn't exist", extra={'token': data['token']})
             return HttpResponseForbidden(_("Invalid token"))
@@ -93,7 +95,7 @@ class ProfileEdit(AuthRequiredMixin, FormView):
 
     def dispatch(self, request, *args, **kwargs):
         try:
-            self.site = EntreeSite.objects.get_cached(kwargs['site_id'])
+            self.site = get_cached_object(EntreeSite, pk=kwargs['site_id'])
         except (KeyError, EntreeSite.DoesNotExist):
             raise Http404(_("Requested site doesn't exist"))
 

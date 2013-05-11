@@ -1,4 +1,5 @@
 import logging
+
 from django.contrib.auth.backends import ModelBackend
 from entree.enauth.models import Identity
 

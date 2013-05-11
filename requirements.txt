@@ -1,4 +1,5 @@
-south>=0.7
+south==0.7.6
 django-bootstrap-forms
 simplejson
-django>=1.4
+django>=1.5,<1.6
+git+https://bitbucket.org/creatiweb/django-cache-tools#egg=django-cache-tools

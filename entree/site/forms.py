@@ -15,6 +15,9 @@ class ProfileForm(BootstrapForm):
     handling IntegrityError, which we cannot get earlies
     """
 
+    #if form has no props, show at least this checkbox
+    dummy_is_activated = forms.BooleanField(label=_("Activated profile"))
+
     def __init__(self, user, site, *args, **kwargs):
         """
         - initialize fields according to actual site/user
@@ -36,6 +39,9 @@ class ProfileForm(BootstrapForm):
         self._existing_data = None
         self._site_properties = None
         self.set_fields()
+
+        self.fields['dummy_is_activated'].widget.attrs['readonly'] = True
+        self.fields['dummy_is_activated'].widget.attrs['checked'] = True
 
 
     @property
@@ -81,7 +87,16 @@ class ProfileForm(BootstrapForm):
                     del self.cleaned_data[key]
                 transaction.rollback()
 
+        profile, created = SiteProfile.objects.get_or_create(defaults={'is_active':True}, site=self.site, user=self.user)
+        if not profile.is_active:
+            profile.is_active = True
+            profile.save()
+        elif not created:
+            #TODO - fire signal to call flush_cached()
+            SiteProfile.objects.flush_cached(profile.cache_key)
+
         transaction.commit()
+
         return data
 
     @property
@@ -114,6 +129,9 @@ class ProfileForm(BootstrapForm):
 
         @raise IntegrityError
         """
+        if key in 'dummy_is_activated':
+            return
+
         site_prop = self.site_properties[key]
         if site_prop.is_unique:
             DataClass = ProfileDataUnique
@@ -125,12 +143,4 @@ class ProfileForm(BootstrapForm):
             self.existing_data[key].set_value(value, type_hint=site_prop.value_type)
         else:
             profile_data = DataClass(site_property=site_prop, user=self.user)
-            profile_data.set_value( value )
-
-        profile, created = SiteProfile.objects.get_or_create(defaults={'is_active':True}, site=self.site, user=self.user)
-        if not profile.is_active:
-            profile.is_active = True
-            profile.save()
-        elif not created:
-            #TODO - fire signal to call flush_cached()
-            SiteProfile.objects.flush_cached(profile.cache_key)
+            profile_data.set_value(value)

@@ -82,14 +82,18 @@ class Identity(CachedModel):
         @param app_data:  custom extra data to store in LoginToken.app_data
 
         @rtype:     LoginToken
-        @return:    LoginToken w/ data based on input
+        @return:    LoginToken based on input data
         """
+        app_data = app_data or {}
         if token_type not in dict(TOKEN_TYPES).keys():
             raise ValueError("Unable to create token, unknown type")
 
         value = calc_checksum(self.email, salt=randint(0, maxint))
 
-        return LoginToken.objects.create(user=self, value=value, token_type=token_type, app_data=app_data)
+        token = LoginToken.objects.create(user=self, value=value, token_type=token_type)
+        if app_data:
+            token.app_data = app_data
+        return token
 
     def save(self, *args, **kwargs):
         self.email = self.email.strip().lower()

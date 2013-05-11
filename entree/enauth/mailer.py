@@ -43,7 +43,7 @@ class IdentityMailer(object):
         @return: instance of requested LoginToken
         @rtype: LoginToken
         """
-        new_token = False #`obtained token already exist` flag
+        new_token = False  # `obtained token already exist` flag
         try:
             token = LoginToken.objects.get(token_type=token_type, user=self.identity)
         except LoginToken.MultipleObjectsReturned:
@@ -74,13 +74,15 @@ class IdentityMailer(object):
         try:
             send_mail(subject, message, from_email, recipient_list)
         except Exception, e:
-            logger.error("Submit of mail failed", extra={'exception': e, 'subject': subject, 'recipient_list': recipient_list})
+            logger.error("Submit of mail failed", extra={
+                'exception': e,
+                'subject': subject,
+                'recipient_list': recipient_list})
             return False
         else:
             self.token.touched = datetime.now()
             self.token.save()
             return True
-
 
     def send_activation(self):
         """
@@ -95,14 +97,17 @@ class IdentityMailer(object):
         self._token = self._get_token(token_type=MAIL_TOKEN)
 
         site_domain = Site.objects.get_current().domain
-        activate_link = reverse('verify_identity', kwargs=dict(email=b64encode(self.identity.email), token=self.token.value))
-        activate_url = "http://%s/%s" % (site_domain.rstrip('/'), activate_link.lstrip('/') )
+        activate_link = reverse('verify_identity', kwargs={
+            'email': b64encode(self.identity.email),
+            'token': self.token.value
+        })
+
+        activate_url = "http://%s/%s" % (site_domain.rstrip('/'), activate_link.lstrip('/'))
         message = render_to_string("email/verify.html", context_instance=Context({
             "activate_link": activate_url,
             'site': site_domain,
         }))
         subject = _("Your account confirmation for %s" % site_domain)
-
         return self._send_mail(subject, message)
 
     def send_pwd_reset_verify(self):
@@ -114,11 +119,14 @@ class IdentityMailer(object):
         """
         self._token = self._get_token(token_type=RESET_TOKEN)
 
-        reset_link = reverse('recovery_finish', kwargs=dict(email=b64encode(self.identity.email), token=self.token.value))
-        reset_url = "http://%s/%s" % (Site.objects.get_current().domain.rstrip('/'), reset_link.lstrip('/') )
+        reset_link = reverse('recovery_finish', kwargs={
+            'email':b64encode(self.identity.email),
+            'token':self.token.value
+        })
+
+        reset_url = "http://%s/%s" % (Site.objects.get_current().domain.rstrip('/'), reset_link.lstrip('/'))
         message = render_to_string('email/reset.html', context_instance=Context({
             'reset_link': reset_url,
         }))
         subject = _("Password recovery requested")
-
         return self._send_mail(subject, message)

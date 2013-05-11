@@ -5,6 +5,8 @@ from django.db import models
 
 from entree.common.managers import CachedManagerMixin
 
+from cache_tools.utils import get_cached_object
+
 
 logger = logging.getLogger(__name__)
 NOSITE_ID = settings.ENTREE['NOSITE_ID']
@@ -19,7 +21,7 @@ class SiteProfileManager(CachedManagerMixin, models.Manager):
         override_inactive - obtain data even if profile is not active
         """
         from entree.site.models import EntreeSite
-        site = site or EntreeSite.objects.get_cached(key=NOSITE_ID)
+        site = site or get_cached_object(EntreeSite, pk=NOSITE_ID)
 
         profile, created = self.get_or_create(defaults={'is_active': False}, user=user, site=site)
 
@@ -105,7 +107,7 @@ class SitePropertyManager(CachedManagerMixin, models.Manager):
         @return list of SiteProperty items according to site_id given on input
         """
         from entree.site.models import EntreeSite
-        site = site or EntreeSite.objects.get_cached(key=NOSITE_ID)
+        site = site or get_cached_object(EntreeSite, pk=NOSITE_ID)
 
         if cascade and site.pk != NOSITE_ID:
             resident_props = self.get_site_props(cascade=False)

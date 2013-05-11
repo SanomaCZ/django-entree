@@ -32,7 +32,7 @@ class EntreeUserFetcherMixin(object):
                 raise InvalidAuth("Invalid cookie checksum")
 
         try:
-            user = EntreeUser.objects.get_cached(token)
+            user = get_cached_object(EntreeUser, token=token)
         except EntreeUser.DoesNotExist:
             user = self.perform_fetch(token)
 
