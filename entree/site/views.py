@@ -52,6 +52,10 @@ class AuthRequiredMixin(View):
 
 class ProfileFetchView(JSONResponseMixin, View):
 
+    def get(self, request, *args, **kwargs):
+        request.POST = request.GET
+        return self.post(request, *args, **kwargs)
+
     def post(self, request, *args, **kwargs):
         """
         request.POST contains following keys:
@@ -64,7 +68,7 @@ class ProfileFetchView(JSONResponseMixin, View):
         """
         data = request.POST
         try:
-            site = get_cached_object(EntreeSite, orogin=data['site_id'])
+            site = get_cached_object(EntreeSite, pk=data['site_id'])
         except (EntreeSite.DoesNotExist, KeyError):
             logger.error("requested EntreeSite does not exist", extra={'site_id': data.get('site_id')})
             return HttpResponseForbidden(_("Invalid site id"))
@@ -78,7 +82,7 @@ class ProfileFetchView(JSONResponseMixin, View):
             return HttpResponseForbidden(_("Invalid token checksum"))
 
         try:
-            login_token = get_cached_object(LoginToken, token=data['token'])
+            login_token = get_cached_object(LoginToken, value=data['token'])
         except LoginToken.DoesNotExist:
             logger.error("Requested token doesn't exist", extra={'token': data['token']})
             return HttpResponseForbidden(_("Invalid token"))

@@ -1,3 +1,5 @@
+from app_data import AppDataForm
+
 from django import forms
 from django.core.exceptions import ValidationError
 from django.forms.widgets import PasswordInput
@@ -112,7 +114,6 @@ class ChangePasswordForm(BasicPasswordForm):
         layout = ('old_password', 'password', 'password2')
 
     def __init__(self, *args, **kwargs):
-
         self.entree_user = kwargs.pop('entree_user')
         super(ChangePasswordForm, self).__init__(*args, **kwargs)
 
@@ -121,3 +122,8 @@ class ChangePasswordForm(BasicPasswordForm):
 
         if not self.entree_user.check_password(data['old_password']):
             raise ValidationError("Old password does not match")
+
+
+class EntreeDataForm(AppDataForm):
+    next_url = forms.CharField()
+    origin_site = forms.IntegerField()

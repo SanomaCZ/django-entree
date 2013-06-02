@@ -12,6 +12,7 @@ ECOOKIE = ENTREE['COOKIE']
 COOKIE_CHECKSUM_LENGTH = 10
 CACHED_USER_PROPERTY = '_entree_cached_user'
 
+
 class InvalidAuth(Exception):
     pass
 

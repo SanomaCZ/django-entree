@@ -3,7 +3,6 @@ import logging
 from app_data.fields import AppDataField
 
 from django.conf import settings
-from django.contrib.auth.models import AbstractBaseUser
 from django.db import models
 
 from entree.client.managers import EntreeUserDBManager
@@ -11,6 +10,18 @@ from entree.client.managers import EntreeUserDBManager
 
 ENTREE = settings.ENTREE
 logger = logging.getLogger(__name__)
+
+try:
+    from django.contrib.auth.models import AbstractBaseUser
+except ImportError:
+    from django.contrib.auth.models import User
+    class AbstractBaseUser(User):
+        def save(self, *args, **kwargs):
+            if not self.key:
+                raise ValueError("Cannot save user w/o auth key")
+
+            self.username = self.email
+            super(AbstractBaseUser, self).save(*args, **kwargs)
 
 
 class EntreeDBUser(AbstractBaseUser):

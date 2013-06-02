@@ -1,9 +1,10 @@
-from datetime import datetime
 import logging
 import simplejson as json
 
 from urllib2 import urlopen, URLError
 from urllib import urlencode
+from cache_tools.utils import get_cached_object
+from datetime import datetime
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser, UNUSABLE_PASSWORD
@@ -32,7 +33,7 @@ class EntreeUserFetcherMixin(object):
                 raise InvalidAuth("Invalid cookie checksum")
 
         try:
-            user = get_cached_object(EntreeUser, token=token)
+            user = get_cached_object(EntreeUser, key=token)
         except EntreeUser.DoesNotExist:
             user = self.perform_fetch(token)
 

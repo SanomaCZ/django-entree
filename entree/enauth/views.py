@@ -1,4 +1,3 @@
-from cache_tools.utils import get_cached_object
 import simplejson as json
 import logging
 import re
@@ -6,6 +5,7 @@ import re
 from binascii import Error as DecodeError
 from urlparse import urlparse
 from base64 import b64decode
+from cache_tools.utils import get_cached_object
 
 from django.conf import settings
 from django.contrib.auth import SESSION_KEY
@@ -76,7 +76,7 @@ class EntreeAuthMixin(TemplateResponseMixin):
     def entree_logout(self, next_url=None):
         """
         - delete request[ -ENTREE_USER- ]
-        - delete request[ -CACHED_USER_KEY-]
+        - delete request[ -CACHED_USER_KEY- ]
         - delete request.session[ -ENTREE_SESSION_KEY- ]
         - delete LoginToken (cache's flush is handled in LoginToken.delete())
         - remove token from LocalStorage (via logout.html)
@@ -86,10 +86,9 @@ class EntreeAuthMixin(TemplateResponseMixin):
             old_user = request.entree_user
             try:
                 token = LoginToken.objects.get(
-                        value=request.session.get(ENTREE['STORAGE_TOKEN_KEY']),
-                        user=old_user,
-                        token_type=AUTH_TOKEN)
-
+                    value=request.session.get(ENTREE['STORAGE_TOKEN_KEY']),
+                    user=old_user,
+                    token_type=AUTH_TOKEN)
             except LoginToken.DoesNotExist:
                 pass
             else:
@@ -118,7 +117,8 @@ class LoginView(EntreeAuthMixin, FormView):
     @never_cache
     def dispatch(self, request, *args, **kwargs):
         if not kwargs.get('origin_site'):
-            return HttpResponseRedirect(reverse('login', kwargs={'origin_site': ENTREE['DEFAULT_SITE']} ))
+            url = reverse('login', kwargs={'origin_site': ENTREE['DEFAULT_SITE']})
+            return HttpResponseRedirect(url)
 
         if request.entree_user.is_authenticated():
             edit_kwargs = dict(site_id=kwargs['origin_site'])
@@ -130,7 +130,7 @@ class LoginView(EntreeAuthMixin, FormView):
 
     def get_context_data(self, **kwargs):
         data = super(LoginView, self).get_context_data(**kwargs)
-        data['origin_site'] = get_cached_object(EntreeSite, origin=self.kwargs['origin_site'])
+        data['origin_site'] = get_cached_object(EntreeSite, pk=self.kwargs['origin_site'])
         return data
 
     def form_valid(self, form):
@@ -144,7 +144,8 @@ class LogoutView(AuthRequiredMixin, EntreeAuthMixin, FormView):
 
     def form_valid(self, form):
         origin_site = self.kwargs.get('origin_site', ENTREE['DEFAULT_SITE'])
-        return self.entree_logout(get_next_url(origin_site, self.kwargs.get('next_url')))
+        next_url = get_next_url(origin_site, self.kwargs.get('next_url'))
+        return self.entree_logout(next_url)
 
 
 class LoginHashView(TemplateView):
@@ -187,7 +188,7 @@ class CreateIdentityView(EntreeAuthMixin, CreateView):
 
     def get_context_data(self, **kwargs):
         data = super(CreateIdentityView, self).get_context_data(**kwargs)
-        data['origin_site'] = EntreeSite.objects.get(pk=self.kwargs['origin_site'])
+        data['origin_site'] = get_cached_object(EntreeSite, pk=self.kwargs['origin_site'])
         return data
 
     def form_valid(self, form):
@@ -200,8 +201,8 @@ class CreateIdentityView(EntreeAuthMixin, CreateView):
         mailer.send_activation()
 
         token = mailer.token
-        token.app_data['origin_site'] = self.kwargs['origin_site']
-        token.app_data['next_url'] = self.kwargs.get('next_url')
+        token.app_data['entree']['origin_site'] = self.kwargs['origin_site']
+        token.app_data['entree']['next_url'] = self.kwargs.get('next_url')
         token.save()
 
         return self.entree_login(self.object)
@@ -225,8 +226,8 @@ class IdentityVerifyView(EntreeAuthMixin, TemplateView):
         except (LoginToken.DoesNotExist, ValidationError, UnicodeError, DecodeError):
             return super(IdentityVerifyView, self).get(request, *args, **kwargs)
 
-        site_id = token.app_data.get('origin_site')
-        next_url = token.app_data.get('next_url')
+        site_id = token.app_data['entree'].get('origin_site')
+        next_url = token.app_data['entree'].get('next_url')
 
         identity = token.user
         identity.is_active = identity.mail_verified = True
@@ -317,8 +318,8 @@ class PasswordChangeView(AuthRequiredMixin, FormView):
 
     def form_valid(self, form):
         actual_token = self.request.session[ENTREE['STORAGE_TOKEN_KEY']]
-        LoginToken.objects\
-            .filter(user=self.request.entree_user, token_type=AUTH_TOKEN)\
+        LoginToken.objects \
+            .filter(user=self.request.entree_user, token_type=AUTH_TOKEN) \
             .exclude(value=actual_token).delete()
 
         self.request.entree_user.set_password(form.cleaned_data['password'])
