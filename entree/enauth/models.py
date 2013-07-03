@@ -3,16 +3,23 @@ import logging
 from random import randint
 from sys import maxint
 from datetime import datetime
+from cache_tools.conf import KEY_PREFIX
+from cache_tools.utils import _get_key
+from django.contrib.contenttypes.models import ContentType
+from django.core.cache import cache
 
 from django.db import models
+from django.db.models.signals import pre_delete
+from django.dispatch import receiver
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth.models import check_password
 
-from entree.common.models import CachedModel
-from entree.enauth.managers import IdentityManager, LoginTokenManager
+from entree.enauth.managers import IdentityManager
 from entree.common.utils import calc_checksum
 
 from app_data.fields import AppDataField
+
+from cache_tools.fields import CachedForeignKey
 
 
 logger = logging.getLogger(__name__)
@@ -30,31 +37,19 @@ TOKEN_TYPES = (
 DEFAULT_TOKEN = AUTH_TOKEN
 
 
-class LoginToken(CachedModel):
+class LoginToken(models.Model):
     """
     Tokens used for various authorisation operations
     """
-    user = models.ForeignKey("enauth.Identity")
+    user = CachedForeignKey("enauth.Identity")
     value = models.CharField(_("Auth token"), max_length=40, unique=True)
     token_type = models.CharField(_("Token type"), choices=TOKEN_TYPES, max_length=5, db_index=True, default=DEFAULT_TOKEN)
     touched = models.DateTimeField(_("Datetime of creation"), default=datetime.now)
 
     app_data = AppDataField(_("Extra data for token"))
 
-    objects = LoginTokenManager()
 
-    @property
-    def cache_key(self):
-        """
-        used by CachedModel as a key for caching
-
-        @return: LoginToken is cached by its value, not pk
-        @rtype: string
-        """
-        return self.value
-
-
-class Identity(CachedModel):
+class Identity(models.Model):
     """
     Main class of user's account
     """
@@ -119,3 +114,12 @@ class Identity(CachedModel):
         return {
             'email': self.email,
         }
+
+@receiver(pre_delete, sender=LoginToken)
+def _signal_delete_profile_data(sender, **kwargs):
+    #TODO - cleaner
+    prop = kwargs['instance']
+    ct =ContentType.objects.get_for_model(prop)
+    key = _get_key(KEY_PREFIX, ct, value=prop.value)
+    cache.delete(key)
+    print 'deleted %s' % key

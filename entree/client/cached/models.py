@@ -1,4 +1,5 @@
 import logging
+from cache_tools.utils import cache_this
 
 from django.core.exceptions import ObjectDoesNotExist
 from entree.client.managers import EntreeUserCacheManager
@@ -38,6 +39,7 @@ class EntreeCacheUser(PseudoModel):
     objects = EntreeUserCacheManager()
 
     def __init__(self, key=None, data=None, email=None):
+        raise NotImplemented
         self._key = key
         self._data = data or {}
         self._data['email'] = self._data.get('email', email)
@@ -56,8 +58,6 @@ class EntreeCacheUser(PseudoModel):
         return str(self.__unicode__())
 
     def __eq__(self, other):
-        a = self.key
-        b = other.key
         return self.key == other.key
 
     def get_and_delete_messages(self):
@@ -74,5 +74,7 @@ class EntreeCacheUser(PseudoModel):
         self._data = data
     data = property(_get_data, _set_data)
 
+    @cache_this(lambda key: 'EntreeCacheUser:%s' % key)
     def save(self, *args, **kwargs):
-        self.__class__.objects.set_cached(self.key, self)
+        raise NotImplemented
+        return self

@@ -4,24 +4,13 @@ from app_data.fields import AppDataField
 
 from django.conf import settings
 from django.db import models
+from django.contrib.auth.models import AbstractBaseUser
 
 from entree.client.managers import EntreeUserDBManager
 
 
 ENTREE = settings.ENTREE
 logger = logging.getLogger(__name__)
-
-try:
-    from django.contrib.auth.models import AbstractBaseUser
-except ImportError:
-    from django.contrib.auth.models import User
-    class AbstractBaseUser(User):
-        def save(self, *args, **kwargs):
-            if not self.key:
-                raise ValueError("Cannot save user w/o auth key")
-
-            self.username = self.email
-            super(AbstractBaseUser, self).save(*args, **kwargs)
 
 
 class EntreeDBUser(AbstractBaseUser):
@@ -34,7 +23,7 @@ class EntreeDBUser(AbstractBaseUser):
     USERNAME_FIELD = 'username'
 
     def get_and_delete_messages(self):
-        #this is not available in self.__dict__, WTF?
+        #this is not available in self.__dict__?
         return []
 
     def __eq__(self, other):

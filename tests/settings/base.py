@@ -1,6 +1,13 @@
-from os.path import dirname, join
+from os import mkdir
+from genericpath import exists
+from os.path import dirname, join, pardir
 
 SITE_ID = 1
+
+CWD = join(dirname(__file__), pardir, '.devtmp')
+if not exists(CWD):
+    mkdir(CWD)
+
 
 DATABASES = {
     'default': {
@@ -18,7 +25,6 @@ INSTALLED_APPS = (
     'entree.site',
     'entree.enauth',
     'entree.client',
-    #'entree.client.cached',
     'entree.client.db',
     'entree.common',
     )
@@ -59,12 +65,6 @@ ENTREE = {
     'DEFAULT_SITE': 2,
 }
 
-
-try:
-    from settings.local import *
-except ImportError:
-    pass
-
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
@@ -73,13 +73,14 @@ CACHES = {
 
 ROOT_URLCONF = 'tests.urls'
 
-
 TEMPLATE_DIRS = (
     join(dirname(__file__), '..', 'templates'),
 )
 
 DEFAULT_FROM_MAIL ='foo@bar.cz'
 
-STATIC_URL = 'foo'
+STATIC_URL = join(CWD, 'static/')
+
+SECRET_KEY = 'foo'
 
 MESSAGE_STORAGE = 'django.contrib.messages.storage.base.BaseStorage'

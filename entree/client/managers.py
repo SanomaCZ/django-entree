@@ -1,9 +1,9 @@
 import logging
+from django.core.cache import cache
 import simplejson as json
 
 from urllib2 import urlopen, URLError
 from urllib import urlencode
-from cache_tools.utils import get_cached_object
 from datetime import datetime
 
 from django.conf import settings
@@ -12,7 +12,8 @@ from django.db import models
 
 from entree.client.middleware import InvalidAuth
 from entree.common.utils import COOKIE_CHECKSUM_SEPARATOR, calc_checksum, SHORT_CHECK
-from entree.common.managers import CachedManagerMixin
+
+from cache_tools.utils import get_cached_object
 
 ENTREE = settings.ENTREE
 FETCH_TIMEOUT = 1 #seconds
@@ -68,8 +69,8 @@ class EntreeUserFetcherMixin(object):
             #TODO - do a checksum of obtained data
             return EntreeUser.objects.create(key=token, data=json_data)
 
-
-class EntreeUserCacheManager(EntreeUserFetcherMixin, CachedManagerMixin):
+'''
+class EntreeUserCacheManager(EntreeUserFetcherMixin):
 
     @property
     def cache_timeout(self):
@@ -82,7 +83,7 @@ class EntreeUserCacheManager(EntreeUserFetcherMixin, CachedManagerMixin):
         from entree.client.models import EntreeUser
 
         user = EntreeUser(**kwargs)
-        self.set_cached(user.key, user)
+        cache.set(user.key, user)
         return user
 
     def get(self, *args, **kwargs):
@@ -96,9 +97,9 @@ class EntreeUserCacheManager(EntreeUserFetcherMixin, CachedManagerMixin):
             raise EntreeUser.DoesNotExist
 
         return cached_user
+'''
 
-
-class EntreeUserDBManager(models.Manager, EntreeUserFetcherMixin, CachedManagerMixin):
+class EntreeUserDBManager(models.Manager, EntreeUserFetcherMixin):
 
     def create(self, key, **kwargs):
         """
@@ -117,12 +118,3 @@ class EntreeUserDBManager(models.Manager, EntreeUserFetcherMixin, CachedManagerM
         user.set_password(UNUSABLE_PASSWORD)
         user.save(using=self._db)
         return user
-
-    def get_cached(self, key, cache_prefix=""):
-        from entree.client.models import EntreeUser
-
-        cached_user = super(EntreeUserDBManager, self).get_cached(key=key, cache_prefix=cache_prefix)
-        if not cached_user:
-            raise EntreeUser.DoesNotExist
-
-        return cached_user

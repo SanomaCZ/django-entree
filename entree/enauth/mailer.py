@@ -120,8 +120,8 @@ class IdentityMailer(object):
         self._token = self._get_token(token_type=RESET_TOKEN)
 
         reset_link = reverse('recovery_finish', kwargs={
-            'email':b64encode(self.identity.email),
-            'token':self.token.value
+            'email': b64encode(self.identity.email),
+            'token': self.token.value
         })
 
         reset_url = "http://%s/%s" % (Site.objects.get_current().domain.rstrip('/'), reset_link.lstrip('/'))

@@ -1,12 +1,13 @@
 from django.conf import settings
 from django.db import models, IntegrityError
 from django.db.models.signals import post_delete
+from django.dispatch import receiver
 from django.utils.translation import ugettext_lazy as _
 
-from entree.common.models import CachedModel
 from entree.site.managers import (SitePropertyManager, EntreeSiteManager,
                                   SiteProfileManager, )
 
+from cache_tools.fields import CachedForeignKey
 
 
 TYPE_INT = 'integer'
@@ -22,19 +23,13 @@ PROPERTY_DEFAULT = TYPE_STR
 ENTREE = settings.ENTREE
 
 
-def _signal_delete_profile_data(sender, **kwargs):
-    prop = kwargs['instance']
-    ProfileData.objects.filter(site_property=prop).delete()
-    ProfileDataUnique.objects.filter(site_property=prop).delete()
-
-
-class SiteProperty(CachedModel):
+class SiteProperty(models.Model):
     name = models.CharField(_("Property name"), max_length=50, help_text=_(
         "Property name as seen by user in his/her profile form"))
     slug = models.SlugField(_("Property slug"), max_length=50, help_text=_(
         "Text purposed to be used as a identify string for given property. "
         "It should be w/o spaces or some fancy chars, usually matches name."))
-    site = models.ForeignKey("site.EntreeSite", blank=True, help_text=_(
+    site = CachedForeignKey("site.EntreeSite", blank=True, help_text=_(
         "Site to which property belongs to. Leave empty if it's supposed to be "
         "resident property for all sites"))
     value_type = models.CharField(_("Type of value"), max_length=10,
@@ -49,10 +44,6 @@ class SiteProperty(CachedModel):
 
     objects = SitePropertyManager()
 
-    def __init__(self, *args, **kwargs):
-        super(SiteProperty, self).__init__(*args, **kwargs)
-        post_delete.connect(_signal_delete_profile_data, sender=self.__class__)
-
     def __unicode__(self):
         return u"%s, site: %s" % (self.name, self.site)
 
@@ -62,10 +53,6 @@ class SiteProperty(CachedModel):
         )
         verbose_name_plural = _("Entree site properties")
 
-    @property
-    def cache_key(self):
-        return self.site.pk
-
     def save(self, *args, **kwargs):
         if self.site_id != ENTREE['NOSITE_ID']:
             resident_props = [one.slug for one in SiteProperty.objects.get_site_props()]
@@ -74,9 +61,7 @@ class SiteProperty(CachedModel):
         super(SiteProperty, self).save(*args, **kwargs)
 
 
-
-
-class EntreeSite(CachedModel):
+class EntreeSite(models.Model):
 
     title = models.CharField("Site title", max_length=100)
     url = models.URLField("Site url", max_length=150)
@@ -90,9 +75,9 @@ class EntreeSite(CachedModel):
         return "Site %s" % self.title
 
 
-class SiteProfile(CachedModel):
-    user = models.ForeignKey('enauth.Identity')
-    site = models.ForeignKey("site.EntreeSite")
+class SiteProfile(models.Model):
+    user = CachedForeignKey('enauth.Identity')
+    site = CachedForeignKey("site.EntreeSite")
     is_active = models.BooleanField(_("Is active"), default=False)
 
     objects = SiteProfileManager()
@@ -105,10 +90,6 @@ class SiteProfile(CachedModel):
     def __unicode__(self):
         return u"<SiteProfile: %s at %s>" % (self.user, self.site)
 
-    @property
-    def cache_key(self):
-        return {'site': self.site, 'user': self.user}
-
 
 class ProfileDataBase(models.Model):
     """
@@ -116,8 +97,8 @@ class ProfileDataBase(models.Model):
     property value (ie .'get users with newsletters')
     """
 
-    user = models.ForeignKey('enauth.Identity')
-    site_property = models.ForeignKey("site.SiteProperty")
+    user = CachedForeignKey('enauth.Identity')
+    site_property = CachedForeignKey("site.SiteProperty")
 
     value_int = models.IntegerField(_("Integer property value"), null=True)
     value_str = models.CharField(_("Short string property value"), max_length=20, null=True)
@@ -167,6 +148,7 @@ class ProfileDataUnique(ProfileDataBase):
 
     value = property(get_value, set_value)
 
+
 class ProfileBigData(models.Model):
 
     value = models.TextField(_("Property value"))
@@ -174,7 +156,7 @@ class ProfileBigData(models.Model):
 
 class ProfileData(ProfileDataBase):
 
-    value_big = models.ForeignKey("site.ProfileBigData", null=True)
+    value_big = CachedForeignKey("site.ProfileBigData", null=True)
     value_bool = models.NullBooleanField(_("Boolean property value"))
 
     def set_value(self, value, type_hint=None):
@@ -221,3 +203,10 @@ class ProfileData(ProfileDataBase):
         return self.value_int or self.value_bool or self.value_str
 
     value = property(get_value, set_value)
+
+
+@receiver(post_delete, sender=SiteProperty)
+def _signal_delete_profile_data(sender, **kwargs):
+    prop = kwargs['instance']
+    ProfileData.objects.filter(site_property=prop).delete()
+    ProfileDataUnique.objects.filter(site_property=prop).delete()

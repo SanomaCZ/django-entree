@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 class EntreeAuthMixin(TemplateResponseMixin):
 
-    def entree_login(self, identity, site_id=None, next_url='/'):
+    def entree_login(self, identity, site_id=None, next_url=None):
         sess = self.request.session
 
         if SESSION_KEY not in sess:
@@ -201,8 +201,8 @@ class CreateIdentityView(EntreeAuthMixin, CreateView):
         mailer.send_activation()
 
         token = mailer.token
-        token.app_data['entree']['origin_site'] = self.kwargs['origin_site']
-        token.app_data['entree']['next_url'] = self.kwargs.get('next_url')
+        token.app_data.entree['origin_site'] = self.kwargs['origin_site']
+        token.app_data.entree['next_url'] = self.kwargs.get('next_url')
         token.save()
 
         return self.entree_login(self.object)
@@ -281,12 +281,12 @@ class RecoveryLoginView(EntreeAuthMixin, View):
             })
 
             return render_to_response('delete_token.html', {
-                        'entree': ENTREE_SAFE,
-                        'input_token': token_str,
-                        'next_url': next_url,
-                    }, context_instance=RequestContext(request))
+                'entree': ENTREE_SAFE,
+                'input_token': token_str,
+                'next_url': next_url,
+            }, context_instance=RequestContext(request))
         else:
-            return self.entree_login(token.user, site_id=kwargs['origin_site'])
+            return self.entree_login(token.user, site_id=kwargs.get('origin_site'))
 
 
 class PasswordRecoveryRequestView(FormView):

@@ -1,18 +1,14 @@
-from app_data import AppDataForm
+from app_data import AppDataForm, multiform_factory
 
 from django import forms
-from django.core.exceptions import ValidationError
-from django.forms.widgets import PasswordInput
 from django.utils.translation import ugettext_lazy as _
 
 from entree.enauth.backends import AuthBackend
 from entree.enauth.mailer import IdentityMailer
-from entree.enauth.models import Identity
-
-from bootstrap.forms import BootstrapModelForm, BootstrapForm, Fieldset
+from entree.enauth.models import Identity, LoginToken
 
 
-class EntreeAuthForm(BootstrapForm):
+class EntreeAuthForm(forms.Form):
     username = forms.CharField(label=_("Username"), max_length=60)
     password = forms.CharField(label=_("Password"), widget=forms.PasswordInput)
 
@@ -47,17 +43,13 @@ class EntreeAuthForm(BootstrapForm):
         return self.user_cache
 
 
-class CreateIdentityForm(BootstrapModelForm):
-    password = forms.CharField(widget=PasswordInput, label=_("New password"))
-    password2 = forms.CharField(widget=PasswordInput, label=_("New password"))
+class CreateIdentityForm(forms.ModelForm):
+    password = forms.CharField(widget=forms.PasswordInput, label=_("New password"))
+    password2 = forms.CharField(widget=forms.PasswordInput, label=_("New password"))
 
     class Meta:
         model = Identity
         fields = ('email', 'password', 'password2',)
-        layout = (
-            Fieldset(_("Insert your e-mail address"), "email"),
-            Fieldset(_("Select your password and type it again to prevent accidental typo"), "password", "password2"),
-        )
 
     def clean_password2(self):
         data = self.cleaned_data
@@ -74,7 +66,7 @@ class CreateIdentityForm(BootstrapModelForm):
         return user
 
 
-class RecoveryForm(BootstrapForm):
+class RecoveryForm(forms.Form):
     email = forms.EmailField(max_length=100, label=_("E-mail address"))
 
     def clean_email(self):
@@ -82,22 +74,22 @@ class RecoveryForm(BootstrapForm):
         try:
             identity = Identity.objects.get(email=email)
         except Identity.DoesNotExist:
-            raise ValidationError(_("Given email is not attached to any user account"))
+            raise forms.ValidationError(_("Given email is not attached to any user account"))
 
         mailer = IdentityMailer(identity)
         if not mailer.send_pwd_reset_verify():
-            raise ValidationError(_("Unable to send reset email at this time, try later."))
+            raise forms.ValidationError(_("Unable to send reset email at this time, try later."))
 
         return email
 
 
-class LogoutForm(BootstrapForm):
+class LogoutForm(forms.Form):
     pass
 
 
-class BasicPasswordForm(BootstrapForm):
-    password = forms.CharField(widget=PasswordInput, label=_("New password"))
-    password2 = forms.CharField(widget=PasswordInput, label=_("New password"))
+class BasicPasswordForm(forms.Form):
+    password = forms.CharField(widget=forms.PasswordInput, label=_("New password"))
+    password2 = forms.CharField(widget=forms.PasswordInput, label=_("New password"))
 
     def clean_password2(self):
         data = self.cleaned_data
@@ -108,7 +100,7 @@ class BasicPasswordForm(BootstrapForm):
 
 
 class ChangePasswordForm(BasicPasswordForm):
-    old_password = forms.CharField(widget=PasswordInput, label=_("Old password"))
+    old_password = forms.CharField(widget=forms.PasswordInput, label=_("Old password"))
 
     class Meta:
         layout = ('old_password', 'password', 'password2')
@@ -121,9 +113,13 @@ class ChangePasswordForm(BasicPasswordForm):
         data = self.cleaned_data
 
         if not self.entree_user.check_password(data['old_password']):
-            raise ValidationError("Old password does not match")
+            raise forms.ValidationError("Old password does not match")
 
 
 class EntreeDataForm(AppDataForm):
     next_url = forms.CharField()
     origin_site = forms.IntegerField()
+
+
+TokenData = multiform_factory(LoginToken, app_data_field='app_data')
+TokenData.add_form('entree')

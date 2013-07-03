@@ -1,5 +1,3 @@
-from bootstrap.forms import BootstrapForm
-
 from django import forms
 from django.db import IntegrityError, transaction
 from django.utils.translation import ugettext_lazy as _
@@ -8,7 +6,7 @@ from entree.site.models import SiteProperty, SiteProfile, ProfileData, ProfileDa
 
 
 #TODO - highlight resident properties in form!
-class ProfileForm(BootstrapForm):
+class ProfileForm(forms.Form):
     """
     Form for editing Identity's profile data.
     Handles also saving into DB, which is messy but it's ideal point for \
@@ -47,7 +45,9 @@ class ProfileForm(BootstrapForm):
     @property
     def site_properties(self):
         if self._site_properties is None:
-            self._site_properties = dict( [ (one.slug, one) for one in SiteProperty.objects.get_site_props(site=self.site) ] )
+            #TODO - get from cache
+            site_props = SiteProperty.objects.get_site_props(site=self.site)
+            self._site_properties = dict([(one.slug, one) for one in site_props])
         return self._site_properties
 
     def set_fields(self):
@@ -87,13 +87,18 @@ class ProfileForm(BootstrapForm):
                     del self.cleaned_data[key]
                 transaction.rollback()
 
-        profile, created = SiteProfile.objects.get_or_create(defaults={'is_active':True}, site=self.site, user=self.user)
+        profile, created = SiteProfile.objects.get_or_create(
+            site=self.site,
+            user=self.user,
+            defaults={'is_active': True})
+
         if not profile.is_active:
             profile.is_active = True
             profile.save()
         elif not created:
-            #TODO - fire signal to call flush_cached()
-            SiteProfile.objects.flush_cached(profile.cache_key)
+            #updating, delete from cache
+            #TODO - flush cache only
+            SiteProfile.objects.get_cached(dict(user=profile.user, site=profile.site), recache=True)
 
         transaction.commit()
 

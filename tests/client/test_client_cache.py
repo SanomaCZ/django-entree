@@ -1,3 +1,4 @@
+'''
 from entree.client.cached.models import EntreeCacheUser
 from tests.client.test_client import TestEntreeDBUser, TestEntreeCacheUserManager, TestEntreeUserFetcher, TestAuthMiddleware
 
@@ -18,3 +19,4 @@ class TestEntreeUserFetcherCache(CacheUserTestCase, TestEntreeUserFetcher):
 
 class TestAuthMiddlewareCache(CacheUserTestCase, TestAuthMiddleware):
     pass
+'''

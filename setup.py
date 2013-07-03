@@ -18,7 +18,6 @@ def install_requires():
         reqs = [one for one in f.read().split("\n") if not one.startswith('"#"') and one]
 
     base = ['setuptools>=0.6b1']
-    print reqs
     return base + reqs
 
 
@@ -47,8 +46,6 @@ setup(
         "License :: OSI Approved :: BSD License",
         "Operating System :: OS Independent",
         "Framework :: Django",
-        "Programming Language :: Python :: 2.5",
-        "Programming Language :: Python :: 2.6",
         "Programming Language :: Python :: 2.7",
         "Operating System :: OS Independent",
         "Topic :: Internet :: WWW/HTTP :: Dynamic Content",

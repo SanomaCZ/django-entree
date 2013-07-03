@@ -1,9 +1,8 @@
 import logging
 
 from django.conf import settings
+from django.core.cache import cache
 from django.db import models
-
-from entree.common.managers import CachedManagerMixin
 
 from cache_tools.utils import get_cached_object
 
@@ -12,7 +11,7 @@ logger = logging.getLogger(__name__)
 NOSITE_ID = settings.ENTREE['NOSITE_ID']
 
 
-class SiteProfileManager(CachedManagerMixin, models.Manager):
+class SiteProfileManager(models.Manager):
 
     #TODO move into ProfileData
     def get_data(self, user, site=None, cascade=True, override_inactive=False):
@@ -23,7 +22,9 @@ class SiteProfileManager(CachedManagerMixin, models.Manager):
         from entree.site.models import EntreeSite
         site = site or get_cached_object(EntreeSite, pk=NOSITE_ID)
 
-        profile, created = self.get_or_create(defaults={'is_active': False}, user=user, site=site)
+        profile, created = self.get_or_create(
+            user=user, site=site,
+            defaults={'is_active': False})
 
         if not profile.is_active and not override_inactive:
             return {'is_active': False}
@@ -34,29 +35,24 @@ class SiteProfileManager(CachedManagerMixin, models.Manager):
         else:
             generic_data = {}
 
-        site_data = self.get_cached(key=profile.cache_key)
+        site_data = self.get_cached(dict(user=user, site=site))
         site_data['is_active'] = profile.is_active
         generic_data.update(site_data)
 
         return generic_data
 
-    def get_cached(self, key, cache_prefix=""):
+    def get_cached(self, key, recache=True):
         """
 
         @param key: dict with models (user, site) to define cache key
         @type key: dict
 
-        @param cache_prefix: key used as a cache prefix
-                            (if empty,  self.__class__.__name__ is used)
-        @type cache_prefix: str
-
         @return: cached data for SiteProfile
         @rtype: dict
         """
         hash_key = "%s:%s" % (key['user'].pk, key['site'].pk)
-        data = super(SiteProfileManager, self).get_cached(hash_key, cache_prefix)
-
-        if data is None:
+        data = cache.get(hash_key)
+        if data is None or recache:
             from entree.site.models import ProfileData, ProfileDataUnique, SiteProperty
             props = SiteProperty.objects.get_site_props(site=key['site'], cascade=False)
 
@@ -71,30 +67,17 @@ class SiteProfileManager(CachedManagerMixin, models.Manager):
                 if one.slug not in data:
                     data[one.slug] = ""
 
-            self.set_cached(hash_key, data)
+            cache.set(hash_key, data)
         return data
 
-    def flush_cached(self, key, cache_prefix=""):
-        key = "%s:%s" % (key['user'].pk, key['site'].pk)
-        return super(SiteProfileManager, self).flush_cached(key, cache_prefix)
 
-
-
-class EntreeSiteManager(CachedManagerMixin, models.Manager):
+class EntreeSiteManager(models.Manager):
 
     def active(self):
         return self.get_query_set().filter(is_active=True).exclude(pk=NOSITE_ID)
 
-    def get_cached(self, key, cache_prefix=""):
-        data = super(EntreeSiteManager, self).get_cached(key, cache_prefix=cache_prefix)
-        if data is None:
-            data = self.get_query_set().get(pk=key)
-            self.set_cached(key, data, cache_prefix=cache_prefix)
 
-        return data
-
-
-class SitePropertyManager(CachedManagerMixin, models.Manager):
+class SitePropertyManager(models.Manager):
 
     def get_site_props(self, site=None, cascade=True):
         """
@@ -114,12 +97,12 @@ class SitePropertyManager(CachedManagerMixin, models.Manager):
         else:
             resident_props = []
 
-        site_props = self.get_cached(site.pk)
+        site_props = self.get_data(site.pk)
         return site_props + resident_props
 
-    def get_cached(self, key, cache_prefix=""):
-        data = super(SitePropertyManager, self).get_cached(key, cache_prefix)
+    def get_data(self, key):
+        data = cache.get('siteprops:%s' % key)
         if data is None:
             data = list(self.get_query_set().filter(site_id=key))
-            self.set_cached(key, value=data, cache_prefix=cache_prefix)
+            cache.set(key, data)
         return data

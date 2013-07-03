@@ -51,13 +51,6 @@ class TestViews(TestCase):
         assert_equals(302, view.status_code)
         assert_equals(view['Location'], reverse('login'))
 
-    def test_fetch_profile_get_request_405(self):
-
-        ViewClass = ProfileFetchView.as_view()
-        view = ViewClass(self.request)
-
-        assert_equals(405, view.status_code)
-
     def test_fetch_profile_post_no_data_403(self):
 
         self.request.method = 'POST'
@@ -208,6 +201,8 @@ class TestViews(TestCase):
         ViewClass = csrf_exempt(ProfileEdit.as_view())
         res = ViewClass(self.request, site_id=self.valid_site.pk, next_url='')
 
+        print dir(res)
+        print res
         assert_equals(res['Location'], reverse('profile'))
 
         profile = SiteProfile.objects.get(user=self.user, site=self.valid_site)
@@ -237,7 +232,6 @@ class TestViews(TestCase):
         location = "%s%s" % (self.valid_site.url, next_url)
 
         assert_equals(res['Location'], location)
-
 
     def test_save_profile_invalidates_cache(self):
         prop = SiteProperty.objects.create(slug='foo', site=self.valid_site)

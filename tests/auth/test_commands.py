@@ -1,7 +1,7 @@
 import os
 
 from django.core.cache import cache
-from django.core.management import call_command
+from django.core.management import call_command, CommandError
 from django.test.testcases import TestCase
 
 from entree.enauth.models import Identity
@@ -62,10 +62,10 @@ class TestCommands(TestCase):
         assert_equals(new_id.check_password(PASS), True)
 
     def test_create_identity_passive_without_email_raises(self):
-        assert_raises(SystemExit, lambda: call_command('createidentity', interactive=False, stderr=DEVNULL))
+        assert_raises(CommandError, lambda: call_command('createidentity', interactive=False, stderr=DEVNULL))
 
     def test_create_idenity_passive_invalid_email_raises(self):
-        assert_raises(SystemExit, lambda: call_command('createidentity', interactive=False, email=2*EMAIL, stderr=DEVNULL))
+        assert_raises(CommandError, lambda: call_command('createidentity', interactive=False, email=2*EMAIL, stderr=DEVNULL))
 
     @patch('__builtin__.raw_input', new_callable=MockedRaw)
     @patch('getpass.getpass', new_callable=MockedRawVariable)

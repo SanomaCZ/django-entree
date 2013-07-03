@@ -1,10 +1,9 @@
-import django
-
+from cache_tools.utils import get_cached_object
 from django.contrib.auth.hashers import UNUSABLE_PASSWORD
 from django.core.cache import cache
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.utils import IntegrityError
 from django.test import TestCase
-from django.conf import settings
 
 from entree.enauth.models import Identity, MAIL_TOKEN, LoginToken
 from nose.tools import assert_raises, assert_equals, assert_not_equals, assert_almost_equals
@@ -35,7 +34,6 @@ class TestIdentity(TestCase):
         ident = Identity(email=self.user.email)
         assert_raises(IntegrityError, ident.save)
 
-
     def test_create_token(self):
         token = self.user.create_token()
 
@@ -51,7 +49,6 @@ class TestIdentity(TestCase):
         assert_equals(True, self.user.check_password('foo'))
         assert_equals(False, self.user.check_password('food'))
 
-
     def test_indentity_update_password(self):
         ident = Identity(password='sha1$c6218$161d1ac8ab38979c5a31cbaba4a67378e7e60845')
         ident.save()
@@ -66,30 +63,15 @@ class TestIdentity(TestCase):
         self.user.set_password("")
         assert_equals(self.user.password, UNUSABLE_PASSWORD)
 
-    @patch.object(django, 'VERSION', (1, 3))
-    def test_set_password_old_django(self):
-        self.user.set_password('foo')
-        assert_equals(True, self.user.password.startswith('sha1$'))
-
-    @patch.object(django, 'VERSION', (1, 3))
-    def test_set_unusable_password_old_django(self):
-        self.user.set_password('')
-        assert_equals(UNUSABLE_PASSWORD, self.user.password)
-
-
     def test_delete_token_flush_cache(self):
         token_key = 'TOKEN_KEY'
         token = LoginToken.objects.create(user=self.user, value=token_key)
-
-        LoginToken.objects.flush_cached = Mock()
-
+        get_cached_object(LoginToken, value=token_key)
         token.delete()
-
-        assert_equals(1, LoginToken.objects.flush_cached.call_count)
-        assert_equals(call(key=token_key), LoginToken.objects.flush_cached.call_args)
+        assert_raises(ObjectDoesNotExist, lambda: get_cached_object(LoginToken, value=token_key))
 
     def test_create_invalid_token_type(self):
-        assert_raises(ValueError, self.user.create_token, token_type='!FOO!')
+        assert_raises(ValueError, lambda: self.user.create_token(token_type='!FOO!'))
 
     def test_identity_returns_auth_status(self):
         assert_equals(True, self.user.is_authenticated())
